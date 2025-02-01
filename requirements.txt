@@ -66,3 +66,5 @@ packaging==25.0
 alpaca-py
 #OandA
 v20
+#InteractiveBrokers
+ib_insync
