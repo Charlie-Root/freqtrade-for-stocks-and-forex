@@ -67,6 +67,7 @@ SUPPORTED_EXCHANGES = [
     "okx",
     "alpacastocks",
     "oanda",
+    "interactivebrokers",
 ]
 
 # either the main, or replacement methods (array) is required
