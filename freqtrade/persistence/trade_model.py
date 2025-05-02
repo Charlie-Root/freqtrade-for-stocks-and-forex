@@ -1027,12 +1027,12 @@ class LocalTrade:
         Calculate the open_rate including open_fee.
         :return: Price in of the open trade incl. Fees
         """
-        open_trade = FtPrecise(amount) * FtPrecise(open_rate)
-        fees = open_trade * FtPrecise(self.fee_open)
+        open_value = FtPrecise(amount) * FtPrecise(open_rate)
+        fees = open_value * FtPrecise(self.fee_open)
         if self.is_short:
-            return float(open_trade - fees)
+            return float(open_value - fees)
         else:
-            return float(open_trade + fees)
+            return float(open_value + fees)
 
     def recalc_open_trade_value(self) -> None:
         """
@@ -1062,13 +1062,13 @@ class LocalTrade:
         return interest(exchange_name=self.exchange, borrowed=borrowed, rate=rate, hours=hours)
 
     def _calc_base_close(self, amount: FtPrecise, rate: float, fee: float | None) -> FtPrecise:
-        close_trade = amount * FtPrecise(rate)
-        fees = close_trade * FtPrecise(fee or 0.0)
+        close_value = amount * FtPrecise(rate)
+        fees = close_value * FtPrecise(fee or 0.0)
 
         if self.is_short:
-            return close_trade + fees
+            return close_value + fees
         else:
-            return close_trade - fees
+            return close_value - fees
 
     def calc_close_trade_value(self, rate: float, amount: float | None = None) -> float:
         """
