@@ -12,7 +12,6 @@ from freqtrade.exceptions import DDosProtection, ExchangeError, OperationalExcep
 from freqtrade.exchange import Exchange
 from freqtrade.exchange.common import retrier
 from freqtrade.exchange.exchange_types import CcxtOrder, FtHas
-from freqtrade.util.datetime_helpers import dt_now, dt_ts
 
 
 logger = logging.getLogger(__name__)
@@ -35,6 +34,7 @@ class Bybit(Exchange):
         "order_time_in_force": ["GTC", "FOK", "IOC", "PO"],
         "ws_enabled": True,
         "trades_has_history": False,  # Endpoint doesn't support pagination
+        "fetch_orders_limit_minutes": 7 * 1440,  # 7 days
         "exchange_has_overrides": {
             # Bybit spot does not support fetch_order
             # Unless the account is unified.
@@ -233,25 +233,6 @@ class Bybit(Exchange):
             except ExchangeError:
                 logger.warning(f"Could not update funding fees for {pair}.")
         return 0.0
-
-    def fetch_orders(
-        self, pair: str, since: datetime, params: dict | None = None
-    ) -> list[CcxtOrder]:
-        """
-        Fetch all orders for a pair "since"
-        :param pair: Pair for the query
-        :param since: Starting time for the query
-        """
-        # On bybit, the distance between since and "until" can't exceed 7 days.
-        # we therefore need to split the query into multiple queries.
-        orders = []
-
-        while since < dt_now():
-            until = since + timedelta(days=7, minutes=-1)
-            orders += super().fetch_orders(pair, since, params={"until": dt_ts(until)})
-            since = until
-
-        return orders
 
     def fetch_order(self, order_id: str, pair: str, params: dict | None = None) -> CcxtOrder:
         if self.exchange_has("fetchOrder"):
