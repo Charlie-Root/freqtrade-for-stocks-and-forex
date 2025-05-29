@@ -49,6 +49,7 @@ class Bybit(Exchange):
         "funding_fee_candle_limit": 200,
         "stoploss_on_exchange": True,
         "stoploss_order_types": {"limit": "limit", "market": "market"},
+        "stoploss_blocks_assets": False,
         # bybit response parsing fails to populate stopLossPrice
         "stop_price_prop": "stopPrice",
         "stop_price_type_field": "triggerBy",
@@ -137,6 +138,21 @@ class Bybit(Exchange):
         )
         if self.trading_mode == TradingMode.FUTURES and self.margin_mode:
             params["position_idx"] = 0
+        return params
+
+    def _get_stop_params(self, side: BuySell, ordertype: str, stop_price: float) -> dict:
+        params = super()._get_stop_params(
+            side=side,
+            ordertype=ordertype,
+            stop_price=stop_price,
+        )
+        # work around ccxt bug introduced in https://github.com/ccxt/ccxt/pull/25887
+        # Where create_order ain't returning an ID any longer.
+        params.update(
+            {
+                "method": "privatePostV5OrderCreate",
+            }
+        )
         return params
 
     def _order_needs_price(self, side: BuySell, ordertype: str) -> bool:
