@@ -18,7 +18,6 @@ from freqtrade.configuration import validate_config_consistency
 from freqtrade.constants import BuySell, Config, EntryExecuteMode, ExchangeConfig, LongShort
 from freqtrade.data.converter import order_book_to_dataframe
 from freqtrade.data.dataprovider import DataProvider
-from freqtrade.edge import Edge
 from freqtrade.enums import (
     ExitCheckTuple,
     ExitType,
@@ -131,13 +130,6 @@ class FreqtradeBot(LoggingMixin):
         # Attach Wallets to strategy instance
         self.strategy.wallets = self.wallets
 
-        # Initializing Edge only if enabled
-        self.edge = (
-            Edge(self.config, self.exchange, self.strategy)
-            if self.config.get("edge", {}).get("enabled", False)
-            else None
-        )
-
         # Init ExternalMessageConsumer if enabled
         self.emc = (
             ExternalMessageConsumer(self.config, self.dataprovider)
@@ -242,9 +234,8 @@ class FreqtradeBot(LoggingMixin):
         self.rpc.startup_messages(self.config, self.pairlists, self.protections)
         # Update older trades with precision and precision mode
         self.startup_backpopulate_precision()
-        if not self.edge:
-            # Adjust stoploss if it was changed
-            Trade.stoploss_reinitialization(self.strategy.stoploss)
+        # Adjust stoploss if it was changed
+        Trade.stoploss_reinitialization(self.strategy.stoploss)
 
         # Only update open orders on startup
         # This will update the database after the initial migration
@@ -335,18 +326,13 @@ class FreqtradeBot(LoggingMixin):
 
     def _refresh_active_whitelist(self, trades: list[Trade] | None = None) -> list[str]:
         """
-        Refresh active whitelist from pairlist or edge and extend it with
+        Refresh active whitelist from pairlist and extend it with
         pairs that have open trades.
         """
         # Refresh whitelist
         _prev_whitelist = self.pairlists.whitelist
         self.pairlists.refresh_pairlist()
         _whitelist = self.pairlists.whitelist
-
-        # Calculating Edge positioning
-        if self.edge:
-            self.edge.calculate(_whitelist)
-            _whitelist = self.edge.adjust(_whitelist)
 
         if trades:
             # Extend active-pair whitelist with pairs of open trades
@@ -705,9 +691,7 @@ class FreqtradeBot(LoggingMixin):
                 else:
                     self.log_once(f"Pair {pair} is currently locked.", logger.info)
                 return False
-            stake_amount = self.wallets.get_trade_stake_amount(
-                pair, self.config["max_open_trades"], self.edge
-            )
+            stake_amount = self.wallets.get_trade_stake_amount(pair, self.config["max_open_trades"])
 
             bid_check_dom = self.config.get("entry_pricing", {}).get("check_depth_of_market", {})
             if (bid_check_dom.get("enabled", False)) and (
@@ -1046,13 +1030,11 @@ class FreqtradeBot(LoggingMixin):
                 precision_mode_price=self.exchange.precision_mode_price,
                 contract_size=self.exchange.get_contract_size(pair),
             )
-            stoploss = self.strategy.stoploss if not self.edge else self.edge.get_stoploss(pair)
+            stoploss = self.strategy.stoploss
             trade.adjust_stop_loss(trade.open_rate, stoploss, initial=True)
 
         else:
-            # This is additional entry, we reset fee_open_currency so fee checking can work
             trade.is_open = True
-            trade.fee_open_currency = None
             trade.set_funding_fees(funding_fees)
 
         trade.orders.append(order_obj)
@@ -1174,7 +1156,7 @@ class FreqtradeBot(LoggingMixin):
             pair, enter_limit_requested, leverage
         )
 
-        if not self.edge and trade is None:
+        if trade is None:
             stake_available = self.wallets.get_available_stake_amount()
             stake_amount = strategy_safe_wrapper(
                 self.strategy.custom_stake_amount, default_retval=stake_amount
@@ -1303,6 +1285,7 @@ class FreqtradeBot(LoggingMixin):
             if (
                 not trade.has_open_orders
                 and not trade.has_open_sl_orders
+                and trade.fee_open_currency is not None
                 and not self.wallets.check_exit_amount(trade)
             ):
                 logger.warning(
@@ -1386,7 +1369,7 @@ class FreqtradeBot(LoggingMixin):
             datetime.now(timezone.utc),
             enter=enter,
             exit_=exit_,
-            force_stoploss=self.edge.get_stoploss(trade.pair) if self.edge else 0,
+            force_stoploss=0,
         )
         for should_exit in exits:
             if should_exit.exit_flag:
@@ -1491,13 +1474,6 @@ class FreqtradeBot(LoggingMixin):
         # If enter order is fulfilled but there is no stoploss, we add a stoploss on exchange
         if len(stoploss_orders) == 0:
             stop_price = trade.stoploss_or_liquidation
-            if self.edge:
-                stoploss = self.edge.get_stoploss(pair=trade.pair)
-                stop_price = (
-                    trade.open_rate * (1 - stoploss)
-                    if trade.is_short
-                    else trade.open_rate * (1 + stoploss)
-                )
 
             if self.create_stoploss_order(trade=trade, stop_price=stop_price):
                 # The above will return False if the placement failed and the trade was force-sold.
@@ -2372,12 +2348,13 @@ class FreqtradeBot(LoggingMixin):
             # If a entry order was closed, force update on stoploss on exchange
             if order.ft_order_side == trade.entry_side:
                 if send_msg:
+                    if trade.nr_of_successful_entries > 1:
+                        # Reset fee_open_currency so fee checking can work
+                        # Only necessary for additional entries
+                        trade.fee_open_currency = None
                     # Don't cancel stoploss in recovery modes immediately
                     trade = self.cancel_stoploss_on_exchange(trade)
-                if not self.edge:
-                    # TODO: should shorting/leverage be supported by Edge,
-                    # then this will need to be fixed.
-                    trade.adjust_stop_loss(trade.open_rate, self.strategy.stoploss, initial=True)
+                trade.adjust_stop_loss(trade.open_rate, self.strategy.stoploss, initial=True)
             if (
                 order.ft_order_side == trade.entry_side
                 or (trade.amount > 0 and trade.is_open)
@@ -2499,9 +2476,8 @@ class FreqtradeBot(LoggingMixin):
         order_amount = safe_value_fallback(order, "filled", "amount")
         # Only run for closed orders
         if (
-            trade.fee_updated(order.get("side", ""))
-            or order["status"] == "open"
-            or order_obj.ft_fee_base
+            trade.fee_updated(order.get("side", "")) or order["status"] == "open"
+            # or order_obj.ft_fee_base
         ):
             return None
 
