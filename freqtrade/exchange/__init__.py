@@ -46,6 +46,6 @@ from freqtrade.exchange.interactivebrokers import Interactivebrokers
 from freqtrade.exchange.kraken import Kraken
 from freqtrade.exchange.kucoin import Kucoin
 from freqtrade.exchange.lbank import Lbank
-from freqtrade.exchange.oanda import Oanda
+from freqtrade.exchange.luno import Luno
 from freqtrade.exchange.okx import Okx
 from freqtrade.exchange.stockexchange import Stockexchange
