@@ -49,3 +49,4 @@ from freqtrade.exchange.lbank import Lbank
 from freqtrade.exchange.luno import Luno
 from freqtrade.exchange.okx import Okx
 from freqtrade.exchange.stockexchange import Stockexchange
+from freqtrade.exchange.immortality import Immortality
