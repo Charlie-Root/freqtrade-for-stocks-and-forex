@@ -65,7 +65,6 @@ SUPPORTED_EXCHANGES = [
     "kraken",
     "okx",
     "alpacastocks",
-    "oanda",
     "interactivebrokers",
 ]
 
