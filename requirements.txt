@@ -62,7 +62,7 @@ packaging==25.0
 
 #Alpaca
 alpaca-py
-#OandA
-v20
 #InteractiveBrokers
 ib_insync
+
+web3
