@@ -93,14 +93,16 @@ class FreqtradeBot(LoggingMixin):
         # Remove credentials from original exchange config to avoid accidental credential exposure
         remove_exchange_credentials(config["exchange"], True)
 
+        self.exchange = ExchangeResolver.load_exchange(
+            self.config, exchange_config=exchange_config, load_leverage_tiers=True
+        )
+
         self.strategy: IStrategy = StrategyResolver.load_strategy(self.config)
 
         # Check config consistency here since strategies can set certain options
         validate_config_consistency(config)
-
-        self.exchange = ExchangeResolver.load_exchange(
-            self.config, exchange_config=exchange_config, load_leverage_tiers=True
-        )
+        # Re-validate exchange compatibility
+        self.exchange.validate_config(self.config)
 
         init_db(self.config["db_url"])
 
@@ -1241,6 +1243,7 @@ class FreqtradeBot(LoggingMixin):
             "leverage": trade.leverage if trade.leverage else None,
             "direction": "Short" if trade.is_short else "Long",
             "limit": open_rate,  # Deprecated (?)
+            "order_rate": open_rate,
             "open_rate": open_rate,
             "order_type": order_type or "unknown",
             "stake_amount": stake_amount,
@@ -1277,6 +1280,7 @@ class FreqtradeBot(LoggingMixin):
             "leverage": trade.leverage,
             "direction": "Short" if trade.is_short else "Long",
             "limit": trade.open_rate,
+            "order_rate": trade.open_rate,
             "order_type": order_type,
             "stake_amount": trade.stake_amount,
             "open_rate": trade.open_rate,
@@ -2272,6 +2276,7 @@ class FreqtradeBot(LoggingMixin):
             "direction": "Short" if trade.is_short else "Long",
             "gain": gain,
             "limit": profit_rate or 0,
+            "order_rate": profit_rate or 0,
             "order_type": order_type,
             "amount": order.safe_amount_after_fee,
             "open_rate": trade.open_rate,
