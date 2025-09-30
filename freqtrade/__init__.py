@@ -1,6 +1,10 @@
 """Freqtrade bot"""
 
+<<<<<<< HEAD
 __version__ = "2025.9"
+=======
+__version__ = "2025.10-dev"
+>>>>>>> upstream/develop
 
 if "dev" in __version__:
     from pathlib import Path
