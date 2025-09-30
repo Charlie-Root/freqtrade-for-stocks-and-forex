@@ -65,15 +65,22 @@ class Okx(Exchange):
         """
         Exchange ohlcv candle limit
         OKX has the following behaviour:
-        * 300 candles for up-to-date data
-        * 100 candles for historic data
-        * 100 candles for additional candles (not futures or spot).
+        * spot and futures:
+            * 300 candles for regular candles
+        * mark and premium-index:
+            * 300 candles for up-to-date data
+            * 100 candles for historic data
+        * additional data:
+            * 100 candles for additional candles
         :param timeframe: Timeframe to check
         :param candle_type: Candle-type
         :param since_ms: Starting timestamp
         :return: Candle limit as integer
         """
-        if candle_type in (CandleType.FUTURES, CandleType.SPOT) and (
+        if candle_type in (CandleType.FUTURES, CandleType.SPOT):
+            return 300
+
+        if candle_type in (CandleType.MARK, CandleType.PREMIUMINDEX) and (
             not since_ms or since_ms > (date_minus_candles(timeframe, 300).timestamp() * 1000)
         ):
             return 300
@@ -287,3 +294,14 @@ class Okx(Exchange):
         orders_open = self._api.fetch_open_orders(pair, since=since_ms)
         orders.extend(orders_open)
         return orders
+
+
+class MyOkx(Okx):
+    """
+    MyOkx exchange class.
+    Minimal adjustment to disable futures trading for the EU subsidiary of Okx
+    """
+
+    _supported_trading_mode_margin_pairs: list[tuple[TradingMode, MarginMode]] = [
+        (TradingMode.SPOT, MarginMode.NONE),
+    ]

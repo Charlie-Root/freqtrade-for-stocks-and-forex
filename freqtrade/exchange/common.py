@@ -46,10 +46,9 @@ BAD_EXCHANGES = {
 
 MAP_EXCHANGE_CHILDCLASS = {
     "binanceus": "binance",
-    "binanceje": "binance",
     "binanceusdm": "binance",
     "okex": "okx",
-    "myokx": "okx",
+    "okxus": "okx",
     "gateio": "gate",
     "huboi": "htx",
 }
@@ -64,9 +63,13 @@ SUPPORTED_EXCHANGES = [
     "hyperliquid",
     "kraken",
     "okx",
+<<<<<<< HEAD
     "alpacastocks",
     "interactivebrokers",
     "immortality",
+=======
+    "myokx",
+>>>>>>> upstream/stable
 ]
 
 # either the main, or replacement methods (array) is required

@@ -28,7 +28,11 @@ EXCHANGES = {
         "leverage_tiers_public": False,
         "leverage_in_spot_market": False,
         "trades_lookback_hours": 4,
-        "private_methods": ["fapiPrivateGetPositionSideDual", "fapiPrivateGetMultiAssetsMargin"],
+        "private_methods": [
+            "fapiPrivateGetPositionSideDual",
+            "fapiPrivateGetMultiAssetsMargin",
+            "sapi_get_spot_delist_schedule",
+        ],
         "sample_order": [
             {
                 "exchange_response": {
@@ -408,13 +412,21 @@ EXCHANGES = {
         "candle_count": 200,
         "orderbook_max_entries": 50,
     },
-    "htx": {
-        "pair": "ETH/BTC",
-        "stake_currency": "BTC",
+    "bitget": {
+        "pair": "BTC/USDT",
+        "stake_currency": "USDT",
         "hasQuoteVolume": True,
         "timeframe": "1h",
         "candle_count": 1000,
     },
+    # TODO: re-enable htx once certificates work again
+    # "htx": {
+    #     "pair": "ETH/BTC",
+    #     "stake_currency": "BTC",
+    #     "hasQuoteVolume": True,
+    #     "timeframe": "1h",
+    #     "candle_count": 1000,
+    # },
     "bitvavo": {
         "pair": "BTC/EUR",
         "stake_currency": "EUR",

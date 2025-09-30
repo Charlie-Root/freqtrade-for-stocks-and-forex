@@ -10,11 +10,13 @@ usage: freqtrade backtesting [-h] [-v] [--no-color] [--logfile FILE] [-V]
                              [--stake-amount STAKE_AMOUNT] [--fee FLOAT]
                              [-p PAIRS [PAIRS ...]] [--eps]
                              [--enable-protections]
+                             [--enable-dynamic-pairlist]
                              [--dry-run-wallet DRY_RUN_WALLET]
                              [--timeframe-detail TIMEFRAME_DETAIL]
                              [--strategy-list STRATEGY_LIST [STRATEGY_LIST ...]]
                              [--export {none,trades,signals}]
-                             [--export-filename PATH]
+                             [--backtest-filename PATH]
+                             [--backtest-directory PATH]
                              [--breakdown {day,week,month,year} [{day,week,month,year} ...]]
                              [--cache {none,day,week,month}]
                              [--freqai-backtest-live-models] [--notes TEXT]
@@ -43,9 +45,14 @@ options:
                         Allow buying the same pair multiple times (position
                         stacking).
   --enable-protections, --enableprotections
-                        Enable protections for backtesting.Will slow
+                        Enable protections for backtesting. Will slow
                         backtesting down by a considerable amount, but will
                         include configured protections
+  --enable-dynamic-pairlist
+                        Enables dynamic pairlist refreshes in backtesting. The
+                        pairlist will be generated for each new candle if
+                        you're using a pairlist handler that supports this
+                        feature, for example, ShuffleFilter.
   --dry-run-wallet DRY_RUN_WALLET, --starting-balance DRY_RUN_WALLET
                         Starting balance, used for backtesting / hyperopt and
                         dry-runs.
@@ -61,10 +68,15 @@ options:
                         becomes `backtest-data-SampleStrategy.json`
   --export {none,trades,signals}
                         Export backtest results (default: trades).
-  --export-filename PATH, --backtest-filename PATH
-                        Use this filename for backtest results.Requires
-                        `--export` to be set as well. Example: `--export-filen
-                        ame=user_data/backtest_results/backtest_today.json`
+  --backtest-filename PATH, --export-filename PATH
+                        Use this filename for backtest results.Example:
+                        `--backtest-
+                        filename=backtest_results_2020-09-27_16-20-48.json`.
+                        Assumes either `user_data/backtest_results/` or
+                        `--export-directory` as base directory.
+  --backtest-directory PATH, --export-directory PATH
+                        Directory to use for backtest results. Example:
+                        `--export-directory=user_data/backtest_results/`.
   --breakdown {day,week,month,year} [{day,week,month,year} ...]
                         Show backtesting breakdown per [day, week, month,
                         year].

@@ -49,11 +49,13 @@ ARGS_BACKTEST = [
     *ARGS_COMMON_OPTIMIZE,
     "position_stacking",
     "enable_protections",
+    "enable_dynamic_pairlist",
     "dry_run_wallet",
     "timeframe_detail",
     "strategy_list",
     "export",
     "exportfilename",
+    "exportdirectory",
     "backtest_breakdown",
     "backtest_cache",
     "freqai_backtest_live_models",
@@ -94,9 +96,14 @@ ARGS_LIST_FREQAIMODELS = ["freqaimodel_path", "print_one_column"]
 
 ARGS_LIST_HYPEROPTS = ["hyperopt_path", "print_one_column"]
 
-ARGS_BACKTEST_SHOW = ["exportfilename", "backtest_show_pair_list", "backtest_breakdown"]
+ARGS_BACKTEST_SHOW = [
+    "exportfilename",
+    "exportdirectory",
+    "backtest_show_pair_list",
+    "backtest_breakdown",
+]
 
-ARGS_LIST_EXCHANGES = ["print_one_column", "list_exchanges_all"]
+ARGS_LIST_EXCHANGES = ["print_one_column", "list_exchanges_all", "trading_mode", "dex_exchanges"]
 
 ARGS_LIST_TIMEFRAMES = ["exchange", "print_one_column"]
 
@@ -158,6 +165,7 @@ ARGS_DOWNLOAD_DATA = [
     "days",
     "new_pairs_days",
     "include_inactive",
+    "no_parallel_download",
     "timerange",
     "download_trades",
     "convert_trades",
@@ -233,6 +241,7 @@ ARGS_HYPEROPT_SHOW = [
 
 ARGS_ANALYZE_ENTRIES_EXITS = [
     "exportfilename",
+    "exportdirectory",
     "analysis_groups",
     "enter_reason_list",
     "exit_reason_list",
@@ -252,7 +261,12 @@ ARGS_LOOKAHEAD_ANALYSIS = [
     a
     for a in ARGS_BACKTEST
     if a not in ("position_stacking", "backtest_cache", "backtest_breakdown", "backtest_notes")
-] + ["minimum_trade_amount", "targeted_trade_amount", "lookahead_analysis_exportfilename"]
+] + [
+    "minimum_trade_amount",
+    "targeted_trade_amount",
+    "lookahead_analysis_exportfilename",
+    "lookahead_allow_limit_orders",
+]
 
 ARGS_RECURSIVE_ANALYSIS = ["timeframe", "timerange", "dataformat_ohlcv", "pairs", "startup_candle"]
 
