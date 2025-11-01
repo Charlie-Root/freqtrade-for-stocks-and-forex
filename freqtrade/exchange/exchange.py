@@ -955,6 +955,9 @@ class Exchange:
         """
         if endpoint in self._ft_has.get("exchange_has_overrides", {}):
             return self._ft_has["exchange_has_overrides"][endpoint]
+        if self._api_async is None:
+            # For exchanges that don't use ccxt (like Interactivebrokers)
+            return False
         return endpoint in self._api_async.has and self._api_async.has[endpoint]
 
     def features(
