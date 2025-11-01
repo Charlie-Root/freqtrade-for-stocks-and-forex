@@ -429,15 +429,24 @@ class Exchange:
     @property
     def name(self) -> str:
         """exchange Name (from ccxt)"""
+        if self._api is None:
+            # For exchanges that don't use ccxt (like Interactivebrokers)
+            return "interactivebrokers"
         return self._api.name
 
     @property
     def id(self) -> str:
         """exchange ccxt id"""
+        if self._api is None:
+            # For exchanges that don't use ccxt (like Interactivebrokers)
+            return "interactivebrokers"
         return self._api.id
 
     @property
     def timeframes(self) -> list[str]:
+        if self._api is None:
+            # For exchanges that don't use ccxt (like Interactivebrokers)
+            return ["1m", "5m", "15m", "30m", "1h", "4h", "1d"]
         return list((self._api.timeframes or {}).keys())
 
     @property
@@ -664,6 +673,9 @@ class Exchange:
             self._exchange_ws.reset_connections()
 
     async def _api_reload_markets(self, reload: bool = False) -> None:
+        if self._api_async is None:
+            # For exchanges that don't use ccxt (like Interactivebrokers)
+            return None
         try:
             await self._api_async.load_markets(reload=reload, params={})
         except ccxt.DDoSProtection as e:
@@ -676,6 +688,9 @@ class Exchange:
             raise TemporaryError(e) from e
 
     def _load_async_markets(self, reload: bool = False) -> None:
+        if self._api_async is None:
+            # For exchanges that don't use ccxt (like Interactivebrokers)
+            return None
         try:
             with self._loop_lock:
                 markets = self.loop.run_until_complete(self._api_reload_markets(reload=reload))
@@ -706,15 +721,16 @@ class Exchange:
             retries: int = 3 if force else 0
             # Reload async markets, then assign them to sync api
             retrier(self._load_async_markets, retries=retries)(reload=True)
-            self._markets = self._api_async.markets
-            self._api.set_markets_from_exchange(self._api_async)
-            # Assign options array, as it contains some temporary information from the exchange.
-            # TODO: investigate with ccxt if it's safe to remove `.options`
-            self._api.options = self._api_async.options
-            if self._exchange_ws:
-                # Set markets to avoid reloading on websocket api
-                self._ws_async.set_markets_from_exchange(self._api_async)
-                self._ws_async.options = self._api.options
+            if self._api_async is not None:
+                self._markets = self._api_async.markets
+                self._api.set_markets_from_exchange(self._api_async)
+                # Assign options array, as it contains some temporary information from the exchange.
+                # TODO: investigate with ccxt if it's safe to remove `.options`
+                self._api.options = self._api_async.options
+                if self._exchange_ws:
+                    # Set markets to avoid reloading on websocket api
+                    self._ws_async.set_markets_from_exchange(self._api_async)
+                    self._ws_async.options = self._api.options
             self._last_markets_refresh = dt_ts()
 
             if is_initial and self._ft_has["needs_trading_fees"]:
@@ -968,8 +984,11 @@ class Exchange:
         https://docs.ccxt.com/#/README?id=features
         attributes are in a nested dict, with spot and swap.linear
         e.g. spot.fetchOHLCV.limit
-             swap.linear.fetchOHLCV.limit
+              swap.linear.fetchOHLCV.limit
         """
+        if self._api_async is None:
+            # For exchanges that don't use ccxt (like Interactivebrokers)
+            return default
         feat = (
             self._api_async.features.get("spot", {})
             if market_type == "spot"
