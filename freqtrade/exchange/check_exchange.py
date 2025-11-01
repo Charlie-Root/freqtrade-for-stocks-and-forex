@@ -82,5 +82,11 @@ def check_exchange(config: Config, check_for_bad: bool = True) -> bool:
                 logger.warning(
                     f'Exchange "{exchange}"  will not work with Freqtrade. Reason: {reason}'
                 )
+    elif exchange == "interactivebrokers":
+        # Interactivebrokers is a custom exchange that doesn't use ccxt, so skip ccxt validation
+        logger.info(
+            f"The {exchange.capitalize()} exchange is recognized by Freqtrade "
+            f"but not compatible with ccxt. Experimental!!!"
+        )
 
     return True

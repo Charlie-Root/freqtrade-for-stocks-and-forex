@@ -376,7 +376,11 @@ class Exchange:
                 ccxt_module = ccxt_async
 
         if not is_exchange_known_ccxt(name, ccxt_module):
-            raise OperationalException(f"Exchange {name} is not supported by ccxt")
+            if name.lower() == "interactivebrokers":
+                # Interactivebrokers is a custom exchange that doesn't use ccxt
+                return None
+            else:
+                raise OperationalException(f"Exchange {name} is not supported by ccxt")
 
         ex_config = {
             "apiKey": exchange_config.get(
@@ -402,7 +406,11 @@ class Exchange:
         try:
             api = getattr(ccxt_module, name.lower())(ex_config)
         except (KeyError, AttributeError) as e:
-            raise OperationalException(f"Exchange {name} is not supported") from e
+            if name.lower() == "interactivebrokers":
+                # Interactivebrokers is a custom exchange that doesn't use ccxt
+                pass
+            else:
+                raise OperationalException(f"Exchange {name} is not supported") from e
         except ccxt.BaseError as e:
             raise OperationalException(f"Initialization of ccxt failed. Reason: {e}") from e
 

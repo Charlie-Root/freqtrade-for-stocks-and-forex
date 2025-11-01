@@ -23,8 +23,9 @@ def setup_utils_configuration(
     config = configuration.get_config()
 
     # Ensure these modes are using Dry-run
-    if set_dry:
-        config["dry_run"] = True
+    # if set_dry:
+    # config["dry_run"] = True
+
     validate_config_consistency(config, preliminary=True)
 
     return config

@@ -69,6 +69,7 @@ class Interactivebrokers(Foreignexchange):
     _exit_rate_cache: dict[str, float]
 
     _ft_has_default = {
+        "always_require_api_keys": False,
         "stoploss_on_exchange": False,
         "order_time_in_force": ["GTC", "IOC", "FOK"],
         "ohlcv_candle_limit": 500,
@@ -139,7 +140,7 @@ class Interactivebrokers(Foreignexchange):
         self._active_tickers: list = []
         self._running = True
         self._reconnect_event = Event()
-        self.shutdown_event = Event()
+        self.shutdown_event: Event = Event()
         self.is_shutting_down = False
         self._connection_thread: Thread | None = None
         self._ws_connected = False
@@ -154,7 +155,9 @@ class Interactivebrokers(Foreignexchange):
         atexit.register(self.close)
 
         # Set ports based on live/paper trading
-        if self.dry_run:
+        if self.dry_run and self.dry_run is True:
+            logger.info(self.dry_run)
+            logger.info("Dry run detected. Using paper trading settings.")
             self.port = config.get("ib_paper_port", 4002)
             logger.info(f"Connecting to IBKR paper trading (IB Gateway) on port {self.port}.")
         else:
@@ -1210,6 +1213,15 @@ class Interactivebrokers(Foreignexchange):
     def get_option(self, key: str, default: Any = None) -> Any:
         return self._ft_has_default.get(key, default)
 
+    def exchange_has(self, endpoint: str) -> bool:
+        """
+        Override exchange_has for Interactivebrokers since it doesn't use ccxt.
+        """
+        if endpoint in self._ft_has.get("exchange_has_overrides", {}):
+            return self._ft_has["exchange_has_overrides"][endpoint]
+        # For Interactivebrokers, return False for ccxt-specific endpoints
+        return False
+
     def validate_required_startup_candles(self, required_startup: int, timeframe: str) -> None:
         if not self.markets:
             logger.error("No markets available for validation of startup candles")
@@ -1505,26 +1517,28 @@ class Interactivebrokers(Foreignexchange):
         without long waits, so CTRL+C returns immediately.
         """
         self._running = False
-        self.shutdown_event.set()
+        if hasattr(self, "shutdown_event"):
+            self.shutdown_event.set()
 
         # Forcefully cancel all subscriptions, but quietly ignore connection failures
-        try:
-            if hasattr(self.ib.client, "reqMarketDataType"):
-                self.ib.client.reqMarketDataType(3)  # Switch to delayed feed
-            for ticker in getattr(self, "_active_tickers", []):
-                try:
-                    self.ib.cancelMktData(ticker.contract)
-                except ConnectionError:
-                    # Already disconnected—no need to warn
-                    pass
-                except Exception as e:
-                    logger.warning(f"Error canceling ticker during shutdown: {e}")
-            self._active_tickers.clear()
-        except ConnectionError:
-            # Ignore if the client is already disconnected
-            pass
-        except Exception as e:
-            logger.warning(f"Unexpected error during shutdown subscription cleanup: {e}")
+        if hasattr(self, "ib"):
+            try:
+                if hasattr(self.ib.client, "reqMarketDataType"):
+                    self.ib.client.reqMarketDataType(3)  # Switch to delayed feed
+                for ticker in getattr(self, "_active_tickers", []):
+                    try:
+                        self.ib.cancelMktData(ticker.contract)
+                    except ConnectionError:
+                        # Already disconnected—no need to warn
+                        pass
+                    except Exception as e:
+                        logger.warning(f"Error canceling ticker during shutdown: {e}")
+                self._active_tickers.clear()
+            except ConnectionError:
+                # Ignore if the client is already disconnected
+                pass
+            except Exception as e:
+                logger.warning(f"Unexpected error during shutdown subscription cleanup: {e}")
 
     def _disconnect_and_clear(self) -> None:
         try:

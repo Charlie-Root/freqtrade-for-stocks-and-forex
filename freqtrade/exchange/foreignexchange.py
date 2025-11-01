@@ -1,24 +1,31 @@
 # foreignexchange.py
 import logging
 
+from freqtrade.exchange.exchange import Exchange
+
 
 logger = logging.getLogger(__name__)
 
 
-class Foreignexchange:
+class Foreignexchange(Exchange):
     def __init__(self, config, validate=True, exchange_config=None, load_leverage_tiers=False):
-        self.config = config
-        self.validate = validate
-        self.exchange_config = exchange_config
-        self.load_leverage_tiers = load_leverage_tiers
+        super().__init__(
+            config,
+            exchange_config=exchange_config,
+            validate=validate,
+            load_leverage_tiers=load_leverage_tiers,
+        )
         logger.info("Foreignexchange retrieved successfully.")
+
+    @property
+    def _ft_has_default(self):
+        return {
+            "always_require_api_keys": False,
+        }
 
     @property
     def name(self):
         return "foreignexchange"
-
-    def close(self):
-        pass
 
     def exchange_has(self, method):
         """
