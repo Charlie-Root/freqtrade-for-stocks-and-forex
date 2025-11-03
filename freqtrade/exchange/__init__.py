@@ -46,6 +46,7 @@ from freqtrade.exchange.hyperliquid import Hyperliquid
 from freqtrade.exchange.idex import Idex
 from freqtrade.exchange.immortality import Immortality
 from freqtrade.exchange.interactivebrokers import Interactivebrokers
+from freqtrade.exchange.interactivebrokers_stocks import InteractivebrokersStocks
 from freqtrade.exchange.kraken import Kraken
 from freqtrade.exchange.kucoin import Kucoin
 from freqtrade.exchange.lbank import Lbank
