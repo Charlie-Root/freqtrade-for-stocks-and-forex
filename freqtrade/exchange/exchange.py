@@ -452,10 +452,17 @@ class Exchange:
     @property
     def markets(self) -> dict[str, Any]:
         """exchange ccxt markets"""
-        if not self._markets:
+        if not self._markets and self._api is not None:
             logger.info("Markets were not loaded. Loading them now..")
             self.reload_markets(True)
-        return self._markets
+            logger.info("Markets reloaded successfully.")
+            logger.info(f"Loaded {len(self._markets)} markets.")
+            return self._markets
+        self.ft_additional_exchange_init()
+        logger.info(f"Returning {len(self._markets)} markets.")
+        self.reload_markets(True)
+        logger.info("Markets reloaded successfully.")
+        logger.info(f"Returning {len(self._markets)} markets.")
 
     @property
     def precisionMode(self) -> int:
@@ -715,13 +722,14 @@ class Exchange:
             and (self._last_markets_refresh + self.markets_refresh_interval > dt_ts())
         ):
             return None
-        logger.debug("Performing scheduled market reload..")
+        logger.info("Performing scheduled market reload..")
         try:
             # on initial load, we retry 3 times to ensure we get the markets
             retries: int = 3 if force else 0
             # Reload async markets, then assign them to sync api
             retrier(self._load_async_markets, retries=retries)(reload=True)
             if self._api_async is not None:
+                logger.info("Assigning reloaded async markets to sync api..")
                 self._markets = self._api_async.markets
                 self._api.set_markets_from_exchange(self._api_async)
                 # Assign options array, as it contains some temporary information from the exchange.
@@ -732,11 +740,14 @@ class Exchange:
                     self._ws_async.set_markets_from_exchange(self._api_async)
                     self._ws_async.options = self._api.options
             self._last_markets_refresh = dt_ts()
+            logger.info("Markets reloaded successfully.")
 
             if is_initial and self._ft_has["needs_trading_fees"]:
+                logger.info("Fetching trading fees..")
                 self._trading_fees = self.fetch_trading_fees()
 
             if load_leverage_tiers and self.trading_mode == TradingMode.FUTURES:
+                logger.info("Fetching leverage tiers..")
                 self.fill_leverage_tiers()
         except (ccxt.BaseError, TemporaryError):
             logger.exception("Could not load markets.")

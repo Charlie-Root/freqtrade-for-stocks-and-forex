@@ -41,6 +41,7 @@ class ExchangeResolver(IResolver):
         exchange_name = exchange_name.title()
         exchange = None
         try:
+
             exchange = ExchangeResolver._load_exchange(
                 exchange_name,
                 kwargs={
@@ -50,10 +51,18 @@ class ExchangeResolver(IResolver):
                     "load_leverage_tiers": load_leverage_tiers,
                 },
             )
-        except ImportError:
+        except ImportError as e:
             logger.info(
                 f"No {exchange_name} specific subclass found. Using the generic class instead."
             )
+            logger.info("Make sure your exchange is supported by CCXT.")
+            # log the import error at debug level
+            logger.debug(f"ImportError details: {e}", exc_info=True)
+        except Exception as e:
+            logger.warning(
+                f"Failed to instantiate {exchange_name} exchange class: {e}. Using the generic class instead."
+            )
+            logger.debug(f"Instantiation error details: {e}", exc_info=True)
         if not exchange:
             exchange = Exchange(
                 config,
@@ -71,16 +80,29 @@ class ExchangeResolver(IResolver):
         :return: Exchange instance or None
         """
 
+        logger.debug(f"Available exchanges in freqtrade.exchange: {[name for name in dir(exchanges) if not name.startswith('_')]}")
+
         try:
             ex_class = getattr(exchanges, exchange_name)
+        except AttributeError as e:
+            logger.error(f"Exchange '{exchange_name}' not found in freqtrade.exchanges: {e}")
+            # Pass and raise ImportError instead
+            raise ImportError(f"Exchange '{exchange_name}' not found")
 
+        try:
             exchange = ex_class(**kwargs)
             if exchange:
                 logger.info(f"Using resolved exchange '{exchange_name}'...")
                 return exchange
-        except AttributeError:
-            # Pass and raise ImportError instead
+            else:
+                logger.info(f"Exchange '{exchange_name}' could not be instantiated...")
+        except Exception as e:
+            logger.warning(f"Failed to instantiate {exchange_name} exchange class: {e}")
+            logger.debug(f"Instantiation error details: {e}", exc_info=True)
+            # Pass and raise ImportError to trigger fallback
             pass
+
+        logger.info(f"Failed to load Exchange '{exchange_name}'...")
 
         raise ImportError(
             f"Impossible to load Exchange '{exchange_name}'. This class does not exist "
