@@ -2,8 +2,8 @@
 
 This fork of [Freqtrade](https://www.freqtrade.io/) adds support for:
 
-- ✅ **Stocks**
-- 🌍 **Forex**
+- ✅ **Stocks** (via Alpaca or Interactive Brokers)
+- 🌍 **Forex** (via Interactive Brokers)
 - 🪙 **Immortality Coin** (trade our coin)
 
 It stays in sync with upstream Freqtrade and allows **all your existing strategies to run without modification** on these new markets.
@@ -15,11 +15,11 @@ It stays in sync with upstream Freqtrade and allows **all your existing strategi
 | Market                  | Backtesting      | Dry Run      | Live Trading       |
 |-------------------------|------------------|--------------|--------------------|
 | **Crypto**              | ✅               | ✅           | ✅                 |
-| **Stocks**              | ✅               | ✅           | ❌ *(Untested)*    |
-| **Forex**               | ❌ *(Limited)*   | ✅           | ❌ *(Untested)*    |
+| **Stocks**              | ✅               | ✅           | ✅ *(Interactive Brokers)* |
+| **Forex**               | ❌ *(Limited)*   | ✅           | ✅ *(Interactive Brokers)* |
 | **Immortality coin**    | ❌ *(Untested)*  | ✅           | ✅                 |
 
-> ⚠️ **Live trading for Stocks and Forex has not been tested. Proceed with caution.**
+> ⚠️ **Live trading for Stocks and Forex via Interactive Brokers is now supported but use caution.**
 
 ---
 
@@ -81,6 +81,59 @@ freqtrade backtesting -c user_data/stocks_config.json -s SampleStrategy --timera
 ```
 ```plain
 freqtrade trade -c user_data/stocks_config.json -s TestAlpaca
+```
+
+### 📈 Stock Trading (via interactivebrokers_stocks)
+
+Setup
+
+- Sign up at Interactive Brokers
+- Download and install Trader Workstation (TWS):
+
+  cd ~/Downloads
+  chmod u+x tws-latest-linux-x64.sh
+  ./tws-latest-linux-x64.sh
+
+- In TWS settings:
+  - Port: 4002 (paper) or 7497 (live)
+  - Enable:
+    - ActiveX & socket clients
+    - Connections from localhost
+  - Disable: Read-only API
+- Ensure your base currency is USD
+- Copy:
+  - stocks_config.json → user_data/
+  - TestIB.py → user_data/strategies/
+
+```
+Example Config Snippet
+
+{
+  "db_url": "sqlite:///tradesv3.stocks.dryrun.sqlite",
+  "exchange": {
+    "name": "interactivebrokers_stocks",
+    "key": "",
+    "secret": ""
+  },
+  "pairlists": [
+    {
+      "method": "StaticPairList",
+      "pairs": ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"]
+    }
+  ]
+}
+```
+
+Run Commands
+
+```plain
+freqtrade download-data --config user_data/stocks_config.json --timeframes 5m --timerange 20240101-20240201
+```
+```plain
+freqtrade backtesting -c user_data/stocks_config.json -s SampleStrategy --timerange=20240101-20240201
+```
+```plain
+freqtrade trade -c user_data/stocks_config.json -s TestIB
 ```
 
 ### 🌍 Forex Trading (via interactivebrokers)
@@ -173,7 +226,12 @@ freqtrade trade -c user_data/immortality_config.json -s TestIMT
   - Historical data may require paid subscriptions (especially for Forex)
 - Market hours:
   - Stocks & Forex markets are not 24/7
-  - Exchanges “sleep” during off-hours and resume before open
+  - Exchanges "sleep" during off-hours and resume before open
+- Interactive Brokers:
+  - Requires Trader Workstation (TWS) or IB Gateway to be running
+  - Supports both paper trading (port 4002) and live trading (port 7497)
+  - Stock symbols are configured via pairlists (standard FreqTrade approach)
+  - Forex pairs use standard format (EUR/USD), stocks use symbol only (AAPL)
 
 ### 🧪 FreqUI Integration
 

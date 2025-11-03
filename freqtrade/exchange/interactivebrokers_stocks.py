@@ -176,8 +176,16 @@ class InteractivebrokersStocks(Foreignexchange):
         self.host = config.get("ib_host", "127.0.0.1")
         self.client_id = config.get("ib_client_id", 1)
 
-        # Get stock symbols from config
-        self.stock_symbols = config.get("ib_stock_symbols", ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"])
+        # Get stock symbols from pairlists - this allows dynamic pairlist management
+        # If no pairlists are configured yet, use defaults
+        pairlists_config = config.get("pairlists", [])
+        if pairlists_config:
+            # Extract pairs from the first pairlist (typically StaticPairList)
+            first_pairlist = pairlists_config[0] if pairlists_config else {}
+            self.stock_symbols = first_pairlist.get("pairs", ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"])
+        else:
+            # Fallback for when pairlists aren't configured yet (e.g., during initialization)
+            self.stock_symbols = ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"]
 
         # Only connect to IBKR for live trading, not for backtesting
         runmode = self._config.get("runmode", "dry_run")
